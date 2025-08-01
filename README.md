@@ -1,6 +1,12 @@
 # MCP Server Context7
 
-A Model Context Protocol (MCP) server that provides access to Context7 API for searching and downloading library documentation and source repositories.
+A Model Context Protocol (MCP) server providing access to Context7 API for searching and downloading library documentation and source code repositories.
+
+> **🤖 Built with Copilot**: This project was implemented through **Copilot Vibe Coding** - an AI-assisted development approach using GitHub Copilot for rapid prototyping and implementation.
+
+> **About**: This project is a Python port of Upstash's excellent [Context7](https://github.com/upstash/context7/) MCP server, enhanced with additional features like local documentation management and automatic repository cloning.erver Context7
+
+> **⚠️ Important**: This project is provided **as-is** with **no maintenance commitment**. For production use or ongoing support, please fork this repository and maintain your own version.
 
 ## Features
 
@@ -12,56 +18,56 @@ A Model Context Protocol (MCP) server that provides access to Context7 API for s
 
 ## Installation
 
-### 快速安装（推荐）
+### Quick Install (Recommended)
 
 ```bash
-# 克隆仓库
+# Clone the repository
 git clone https://github.com/yourusername/mcp_server_context7.git
 cd mcp_server_context7
 
-# 运行安装脚本（会创建隔离的虚拟环境）
+# Run the install script (creates isolated virtual environment)
 chmod +x install.sh
 ./install.sh
 ```
 
-安装脚本会：
-- ✅ 检查 Python 版本（需要 3.10+）
-- ✅ 创建隔离的虚拟环境 `.venv`
-- ✅ 安装所有依赖项
-- ✅ 提供完整的 MCP 配置示例
+The install script will:
+- ✅ Check Python version (requires 3.10+)
+- ✅ Create isolated virtual environment `.venv`
+- ✅ Install all dependencies
+- ✅ Provide complete MCP configuration examples
 
-### 手动安装
+### Manual Installation
 
-如果您更喜欢手动控制安装过程：
+If you prefer manual control over the installation process:
 
 ```bash
-# 克隆仓库
+# Clone the repository
 git clone https://github.com/yourusername/mcp_server_context7.git
 cd mcp_server_context7
 
-# 创建虚拟环境
+# Create virtual environment
 python3 -m venv .venv
 source .venv/bin/activate  # Linux/Mac
-# 或 .venv\Scripts\activate  # Windows
+# or .venv\Scripts\activate  # Windows
 
-# 安装依赖
+# Install dependencies
 pip install -e .
 ```
 
-### 验证安装
+### Verify Installation
 
 ```bash
-# 测试运行
+# Test run
 ./.venv/bin/python mcp_server_context7.py
 ```
 
 ## VS Code MCP Configuration
 
-安装完成后，您将获得一个完全隔离的虚拟环境。使用以下配置：
+After installation, you'll have a completely isolated virtual environment. Use the following configuration:
 
-### 自动生成的配置
+### Auto-generated Configuration
 
-运行 `./install.sh` 后，脚本会输出适合您系统的完整配置。复制并粘贴到 `.vscode/mcp.json`：
+After running `./install.sh`, the script will output complete configuration suitable for your system. Copy and paste to `.vscode/mcp.json`:
 
 ```json
 {
@@ -77,9 +83,9 @@ pip install -e .
 }
 ```
 
-### 带代理的配置
+### Configuration with Proxy
 
-如果需要代理支持：
+If you need proxy support:
 
 ```json
 {
@@ -100,12 +106,12 @@ pip install -e .
 }
 ```
 
-### 配置优势
+### Configuration Advantages
 
-✅ **完全隔离**: 使用专用虚拟环境，不污染系统 Python  
-✅ **简单可靠**: 直接指定 Python 解释器和脚本路径  
-✅ **跨平台**: 适用于 Linux、macOS 和 Windows  
-✅ **易于调试**: 可以直接运行测试和排错
+✅ **Complete Isolation**: Uses dedicated virtual environment, doesn't pollute system Python  
+✅ **Simple and Reliable**: Directly specify Python interpreter and script path  
+✅ **Cross-platform**: Works on Linux, macOS, and Windows  
+✅ **Easy to Debug**: Can run tests and troubleshoot directly
 
 ## Usage
 
@@ -171,24 +177,6 @@ content = get_library_content("tiangolo_fastapi.md", max_chars=5000)
 └── scripts/                   # Reserved for future CLI tools
 ```
 
-## Development
-
-### Development Setup
-
-```bash
-# Install development dependencies
-pip install -e ".[dev]"
-
-# Run linting
-ruff check .
-
-# Run formatting
-black .
-
-# Run type checking
-mypy mcp_server_context7.py
-```
-
 ## Based on Context7
 
 This MCP server is based on the excellent [Context7](https://github.com/upstash/context7/) project by Upstash, which provides semantic search across a vast collection of library documentation.
@@ -199,6 +187,14 @@ MIT License - see LICENSE file for details.
 
 ## Contributing
 
+**⚠️ Maintenance Notice**: This project is provided as-is without ongoing maintenance commitment. 
+
+If you need features, bug fixes, or long-term support, we recommend:
+1. **Fork this repository** for your own use
+2. **Create your own maintained version**
+3. **Submit pull requests** (they will be reviewed when possible, but no timeline is guaranteed)
+
+For contributing to this repository:
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
@@ -209,11 +205,22 @@ MIT License - see LICENSE file for details.
 
 ## Support
 
+**⚠️ Limited Support**: This project is provided as-is with limited support.
+
 For issues and questions:
-- Open an issue on GitHub
-- Check the Context7 documentation at https://context7.com
+- **First, try forking and fixing issues yourself** - this is the recommended approach
+- Check existing GitHub issues to see if your problem has been reported
+- Check the Context7 documentation at https://context7.com for API-related questions
+- Open a GitHub issue only for critical bugs, but expect limited response
+
+**For commercial or mission-critical use, we strongly recommend forking this repository and maintaining your own version.**
 
 ## Project URLs
 
 - Repository: https://github.com/yourusername/mcp_server_context7
 - Issues: https://github.com/yourusername/mcp_server_context7/issues
+
+## Documentation
+
+- [English README](README.md)
+- [中文 README](README.zh.md)

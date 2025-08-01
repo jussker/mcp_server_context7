@@ -22,6 +22,12 @@ SOFTWARE.
 
 ---
 
+MAINTENANCE DISCLAIMER:
+This project is provided as-is with no ongoing maintenance commitment. 
+Users are encouraged to fork this repository for their own use and maintenance.
+
+---
+
 This project incorporates concepts and code patterns from the Context7 project:
 https://github.com/upstash/context7/
 
