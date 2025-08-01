@@ -22,7 +22,7 @@ A Model Context Protocol (MCP) server providing access to Context7 API for searc
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/mcp_server_context7.git
+git clone https://github.com/jussker/mcp_server_context7.git
 cd mcp_server_context7
 
 # Run the install script (creates isolated virtual environment)
@@ -42,7 +42,7 @@ If you prefer manual control over the installation process:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/mcp_server_context7.git
+git clone https://github.com/jussker/mcp_server_context7.git
 cd mcp_server_context7
 
 # Create virtual environment
@@ -217,8 +217,8 @@ For issues and questions:
 
 ## Project URLs
 
-- Repository: https://github.com/yourusername/mcp_server_context7
-- Issues: https://github.com/yourusername/mcp_server_context7/issues
+- Repository: https://github.com/jussker/mcp_server_context7
+- Issues: https://github.com/jussker/mcp_server_context7/issues
 
 ## Documentation
 

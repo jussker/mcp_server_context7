@@ -3,7 +3,7 @@ name = "mcp-server-context7"
 version = "0.1.0"
 description = "A Model Context Protocol (MCP) server providing access to Context7 API for searching and downloading library documentation"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "jussker"}
 ]
 readme = "README.md"
 license = {text = "MIT"}
@@ -38,10 +38,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/mcp_server_context7"
-Repository = "https://github.com/yourusername/mcp_server_context7"
-Documentation = "https://github.com/yourusername/mcp_server_context7#readme"
-Issues = "https://github.com/yourusername/mcp_server_context7/issues"
+Homepage = "https://github.com/jussker/mcp_server_context7"
+Repository = "https://github.com/jussker/mcp_server_context7"
+Documentation = "https://github.com/jussker/mcp_server_context7#readme"
+Issues = "https://github.com/jussker/mcp_server_context7/issues"
 
 [project.scripts]
 mcp-server-context7 = "mcp_server_context7:main"

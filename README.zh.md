@@ -22,7 +22,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/mcp_server_context7.git
+git clone https://github.com/jussker/mcp_server_context7.git
 cd mcp_server_context7
 
 # 运行安装脚本（创建隔离的虚拟环境）
@@ -42,7 +42,7 @@ chmod +x install.sh
 
 ```bash
 # 克隆仓库
-git clone https://github.com/yourusername/mcp_server_context7.git
+git clone https://github.com/jussker/mcp_server_context7.git
 cd mcp_server_context7
 
 # 创建虚拟环境
@@ -235,8 +235,8 @@ MIT 许可证 - 详见 LICENSE 文件
 
 ## 项目链接
 
-- 仓库：https://github.com/yourusername/mcp_server_context7
-- 问题反馈：https://github.com/yourusername/mcp_server_context7/issues
+- 仓库：https://github.com/jussker/mcp_server_context7
+- 问题反馈：https://github.com/jussker/mcp_server_context7/issues
 
 ## 文档
 
