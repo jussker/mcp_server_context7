@@ -54,6 +54,20 @@ source .venv/bin/activate  # Linux/Mac
 pip install -e .
 ```
 
+### UV 安装
+
+如果您使用 `uv` 包管理器：
+
+```bash
+# 直接从 Git 仓库安装
+uv add git+https://github.com/jussker/mcp_server_context7.git
+
+# 或者克隆后本地安装
+git clone https://github.com/jussker/mcp_server_context7.git
+cd mcp_server_context7
+uv add -e .
+```
+
 ### 验证安装
 
 ```bash
@@ -63,11 +77,27 @@ pip install -e .
 
 ## VS Code MCP 配置
 
-安装完成后，您将获得一个完全隔离的虚拟环境。使用以下配置：
+### UV 安装（推荐）
 
-### 自动生成的配置
+如果您使用 `uv` 包管理器，使用这个配置：
 
-运行 `./install.sh` 后，脚本会输出适合您系统的完整配置。复制并粘贴到 `.vscode/mcp.json`：
+```json
+{
+  "servers": {
+    "context7": {
+      "command": "uv",
+      "args": ["run", "python3", "-m", "mcp_server_context7"],
+      "env": {
+        "CLIENT_IP_ENCRYPTION_KEY": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    }
+  }
+}
+```
+
+### 快速安装 / 手动安装
+
+如果您使用 `./install.sh` 或手动安装，使用这个配置：
 
 ```json
 {
@@ -83,25 +113,19 @@ pip install -e .
 }
 ```
 
-### 带代理的配置
+### 需要代理支持？
 
-如果需要代理支持：
+如果您需要代理支持，只需在上述任意配置中添加代理环境变量：
 
 ```json
 {
-  "servers": {
-    "context7": {
-      "command": "/path/to/mcp_server_context7/.venv/bin/python",
-      "args": ["/path/to/mcp_server_context7/mcp_server_context7.py"],
-      "env": {
-        "CLIENT_IP_ENCRYPTION_KEY": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-        "http_proxy": "http://127.0.0.1:8890",
-        "HTTP_PROXY": "http://127.0.0.1:8890",
-        "https_proxy": "http://127.0.0.1:8890", 
-        "HTTPS_PROXY": "http://127.0.0.1:8890",
-        "all_proxy": "socks5://127.0.0.1:8890"
-      }
-    }
+  "env": {
+    "CLIENT_IP_ENCRYPTION_KEY": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "http_proxy": "http://127.0.0.1:8890",
+    "HTTP_PROXY": "http://127.0.0.1:8890",
+    "https_proxy": "http://127.0.0.1:8890", 
+    "HTTPS_PROXY": "http://127.0.0.1:8890",
+    "all_proxy": "socks5://127.0.0.1:8890"
   }
 }
 ```
@@ -117,8 +141,17 @@ pip install -e .
 
 ### 运行 MCP 服务器
 
+**如果通过 UV 安装：**
 ```bash
+uv run python -m mcp_server_context7
+```
+
+**如果通过快速安装或手动安装：**
+```bash
+# 从项目目录
 python mcp_server_context7.py
+# 或
+./.venv/bin/python mcp_server_context7.py
 ```
 
 ### 可用工具

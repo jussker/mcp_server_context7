@@ -54,6 +54,20 @@ source .venv/bin/activate  # Linux/Mac
 pip install -e .
 ```
 
+### UV Installation
+
+If you're using `uv` package manager:
+
+```bash
+# Install directly from Git repository
+uv add git+https://github.com/jussker/mcp_server_context7.git
+
+# Or clone and install locally
+git clone https://github.com/jussker/mcp_server_context7.git
+cd mcp_server_context7
+uv add -e .
+```
+
 ### Verify Installation
 
 ```bash
@@ -63,11 +77,27 @@ pip install -e .
 
 ## VS Code MCP Configuration
 
-After installation, you'll have a completely isolated virtual environment. Use the following configuration:
+### UV Installation (Recommended)
 
-### Auto-generated Configuration
+If you're using `uv` package manager, use this configuration:
 
-After running `./install.sh`, the script will output complete configuration suitable for your system. Copy and paste to `.vscode/mcp.json`:
+```json
+{
+  "servers": {
+    "context7": {
+      "command": "uv",
+      "args": ["run", "python3", "-m", "mcp_server_context7"],
+      "env": {
+        "CLIENT_IP_ENCRYPTION_KEY": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      }
+    }
+  }
+}
+```
+
+### Quick Install / Manual Installation
+
+If you used `./install.sh` or manual installation, use this configuration:
 
 ```json
 {
@@ -83,25 +113,19 @@ After running `./install.sh`, the script will output complete configuration suit
 }
 ```
 
-### Configuration with Proxy
+### Need Proxy Support?
 
-If you need proxy support:
+If you need proxy support, simply add proxy environment variables to any of the above configurations:
 
 ```json
 {
-  "servers": {
-    "context7": {
-      "command": "/path/to/mcp_server_context7/.venv/bin/python",
-      "args": ["/path/to/mcp_server_context7/mcp_server_context7.py"],
-      "env": {
-        "CLIENT_IP_ENCRYPTION_KEY": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
-        "http_proxy": "http://127.0.0.1:8890",
-        "HTTP_PROXY": "http://127.0.0.1:8890",
-        "https_proxy": "http://127.0.0.1:8890", 
-        "HTTPS_PROXY": "http://127.0.0.1:8890",
-        "all_proxy": "socks5://127.0.0.1:8890"
-      }
-    }
+  "env": {
+    "CLIENT_IP_ENCRYPTION_KEY": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "http_proxy": "http://127.0.0.1:8890",
+    "HTTP_PROXY": "http://127.0.0.1:8890",
+    "https_proxy": "http://127.0.0.1:8890", 
+    "HTTPS_PROXY": "http://127.0.0.1:8890",
+    "all_proxy": "socks5://127.0.0.1:8890"
   }
 }
 ```
@@ -117,8 +141,17 @@ If you need proxy support:
 
 ### Running the MCP Server
 
+**If installed via UV:**
 ```bash
+uv run python -m mcp_server_context7
+```
+
+**If installed via Quick Install or Manual Installation:**
+```bash
+# From the project directory
 python mcp_server_context7.py
+# or
+./.venv/bin/python mcp_server_context7.py
 ```
 
 ### Available Tools
