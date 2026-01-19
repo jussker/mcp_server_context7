@@ -39,24 +39,44 @@ import subprocess
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+import json
 import requests
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from fastmcp import FastMCP
 
 # Configuration
-CONTEXT7_API_BASE_URL = "https://context7.com/api"
-DEFAULT_TYPE = "txt"
-ENCRYPTION_KEY = os.environ.get(
-    "CLIENT_IP_ENCRYPTION_KEY",
-    "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+# Load package version from the mcp package to report server version in headers
+_THIS_DIR = os.path.dirname(__file__)
+_MCP_PKG_JSON = os.path.join(
+    _THIS_DIR, "context7", "packages", "mcp", "package.json"
+)
+try:
+    with open(_MCP_PKG_JSON, encoding="utf-8") as _f:
+        _pkg = json.load(_f)
+        SERVER_VERSION = _pkg.get("version", "0.0.0")
+except Exception:
+    SERVER_VERSION = "0.0.0"
+
+CONTEXT7_API_BASE_URL = os.environ.get(
+    "CONTEXT7_API_URL", "https://context7.com/api"
 )
 
-# Proxy configuration
-PROXY_CONFIG = {
-    "http": os.environ.get("HTTP_PROXY", None),
-    "https": os.environ.get("HTTPS_PROXY", None),
-}
+# Encryption key (hex 64 chars / 32 bytes)
+DEFAULT_ENCRYPTION_KEY = (
+    "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+)
+ENCRYPTION_KEY = os.environ.get("CLIENT_IP_ENCRYPTION_KEY", DEFAULT_ENCRYPTION_KEY)
+
+# Proxy configuration (respect various env var casings)
+PROXY_URL = (
+    os.environ.get("HTTPS_PROXY")
+    or os.environ.get("https_proxy")
+    or os.environ.get("HTTP_PROXY")
+    or os.environ.get("http_proxy")
+    or None
+)
+PROXY_CONFIG = {"http": PROXY_URL, "https": PROXY_URL} if PROXY_URL else {}
 
 # Create the MCP server
 mcp = FastMCP("Context7 MCP Server 📚")
@@ -65,7 +85,7 @@ mcp = FastMCP("Context7 MCP Server 📚")
 # Utility functions from original context7_tool.py
 def validate_encryption_key(key: str) -> bool:
     """Validate that the encryption key is 64 hex characters (32 bytes)."""
-    return len(key) == 64 and all(c in "0123456789abcdefABCDEF" for c in key)
+    return bool(re.match(r"^[0-9a-fA-F]{64}$", key))
 
 
 def encrypt_client_ip(client_ip: str) -> str:
@@ -88,12 +108,44 @@ def encrypt_client_ip(client_ip: str) -> str:
 
 
 def generate_headers(
-    client_ip: Optional[str] = None, extra_headers: Optional[Dict[str, str]] = None
+    context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, str]:
-    """Generates request headers, including encrypted client IP if provided."""
-    headers = extra_headers or {}
+    """Generate headers for Context7 API requests.
+
+    Accepts either None, a simple dict like {"clientIp": "1.2.3.4"}, or
+    legacy usage where a string IP was passed (handled by callers).
+    """
+    ctx = context or {}
+    # Backwards-compatible: if a plain string was passed, treat as clientIp
+    if isinstance(ctx, str):
+        ctx = {"clientIp": ctx}
+
+    headers: Dict[str, str] = {
+        "X-Context7-Source": "mcp-server",
+        "X-Context7-Server-Version": SERVER_VERSION,
+    }
+
+    client_ip = ctx.get("clientIp") or ctx.get("client_ip")
     if client_ip:
         headers["mcp-client-ip"] = encrypt_client_ip(client_ip)
+
+    api_key = ctx.get("apiKey") or ctx.get("api_key")
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    client_info = ctx.get("clientInfo") or ctx.get("client_info") or {}
+    if isinstance(client_info, dict):
+        ide = client_info.get("ide")
+        version = client_info.get("version")
+        if ide:
+            headers["X-Context7-Client-IDE"] = ide
+        if version:
+            headers["X-Context7-Client-Version"] = version
+
+    transport = ctx.get("transport")
+    if transport:
+        headers["X-Context7-Transport"] = transport
+
     return headers
 
 
@@ -120,10 +172,23 @@ def extract_github_repo_from_doc(text: str) -> Optional[str]:
 
 
 def format_search_results(search_response: Dict[str, Any]) -> str:
-    """Formats a search response into a human-readable string."""
+    """Formats a search response into a human-readable string.
+
+    Aligns with the TypeScript `formatSearchResults` behavior: maps trustScore to
+    a reputation label and includes benchmarkScore when available.
+    """
     results = search_response.get("results", [])
     if not results:
         return "No documentation libraries found matching your query."
+
+    def _reputation_label(score: Optional[int]) -> str:
+        if score is None or score < 0:
+            return "Unknown"
+        if score >= 7:
+            return "High"
+        if score >= 4:
+            return "Medium"
+        return "Low"
 
     formatted_list = []
     for result in results:
@@ -132,12 +197,22 @@ def format_search_results(search_response: Dict[str, Any]) -> str:
             f"- Context7-compatible library ID: {result.get('id', 'N/A')}",
             f"- Description: {result.get('description', 'N/A')}",
         ]
-        if result.get("totalSnippets", -1) != -1:
-            formatted_result.append(f"- Code Snippets: {result['totalSnippets']}")
-        if result.get("trustScore", -1) != -1:
-            formatted_result.append(f"- Trust Score: {result['trustScore']}")
-        if result.get("versions"):
-            formatted_result.append(f"- Versions: {', '.join(result['versions'])}")
+
+        total_snippets = result.get("totalSnippets")
+        if total_snippets is not None and total_snippets != -1:
+            formatted_result.append(f"- Code Snippets: {total_snippets}")
+
+        reputation = _reputation_label(result.get("trustScore"))
+        formatted_result.append(f"- Source Reputation: {reputation}")
+
+        benchmark = result.get("benchmarkScore")
+        if benchmark is not None and benchmark > 0:
+            formatted_result.append(f"- Benchmark Score: {benchmark}")
+
+        versions = result.get("versions") or []
+        if versions:
+            formatted_result.append(f"- Versions: {', '.join(versions)}")
+
         formatted_list.append("\n".join(formatted_result))
 
     return "\n----------\n".join(formatted_list)
@@ -274,29 +349,37 @@ def clone_repository(repo_url: str, target_dir: str) -> bool:
 
 # Internal implementation functions (not decorated with @mcp.tool)
 def _search_libraries_impl(
-    query: str, client_ip: Optional[str] = None
+    query: str,
+    library_name: Optional[str] = None,
+    client_context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Internal implementation of search_libraries."""
+    """Internal implementation of search_libraries aligned with v2 API."""
     try:
-        url = f"{CONTEXT7_API_BASE_URL}/v1/search"
-        params = {"query": query}
-        headers = generate_headers(client_ip, {"X-Context7-Source": "mcp-server"})
+        url = f"{CONTEXT7_API_BASE_URL}/v2/libs/search"
+        params: Dict[str, str] = {"query": query}
+        if library_name:
+            params["libraryName"] = library_name
 
-        response = requests.get(
-            url, params=params, headers=headers, proxies=PROXY_CONFIG
-        )
-        response.raise_for_status()
+        headers = generate_headers(client_context)
+
+        response = requests.get(url, params=params, headers=headers, proxies=PROXY_CONFIG)
+        if response.status_code != 200:
+            # Try to parse server message
+            try:
+                msg = response.json().get("message")
+            except Exception:
+                msg = None
+            if response.status_code == 429:
+                return {"results": [], "error": "Rate limited. Please try again later."}
+            return {"results": [], "error": msg or f"Request failed with status {response.status_code}"}
 
         search_response = response.json()
         results = search_response.get("results", [])
 
         if not results:
-            return {
-                "message": "No documentation libraries found matching your query.",
-                "results": [],
-            }
+            return {"message": "No documentation libraries found matching your query.", "results": []}
 
-        # Format results for better readability
+        # Normalize results
         formatted_results = []
         for result in results:
             formatted_result = {
@@ -304,12 +387,14 @@ def _search_libraries_impl(
                 "id": result.get("id", "N/A"),
                 "description": result.get("description", "N/A"),
             }
-            if result.get("totalSnippets", -1) != -1:
-                formatted_result["totalSnippets"] = result["totalSnippets"]
-            if result.get("trustScore", -1) != -1:
-                formatted_result["trustScore"] = result["trustScore"]
+            if result.get("totalSnippets") is not None:
+                formatted_result["totalSnippets"] = result.get("totalSnippets")
+            if result.get("trustScore") is not None:
+                formatted_result["trustScore"] = result.get("trustScore")
+            if result.get("benchmarkScore") is not None:
+                formatted_result["benchmarkScore"] = result.get("benchmarkScore")
             if result.get("versions"):
-                formatted_result["versions"] = result["versions"]
+                formatted_result["versions"] = result.get("versions")
             formatted_results.append(formatted_result)
 
         return {
@@ -318,53 +403,54 @@ def _search_libraries_impl(
             "formatted_text": format_search_results({"results": formatted_results}),
         }
 
-    except requests.exceptions.HTTPError as e:
-        if hasattr(e, "response") and e.response.status_code == 429:
-            return {"error": "Rate limited. Please try again later."}
-        else:
-            return {"error": f"HTTP error: {e}"}
     except Exception as e:
         return {"error": f"Search failed: {str(e)}"}
 
 
 def _fetch_library_documentation_impl(
     library_id: str,
-    topic: Optional[str] = None,
+    query: Optional[str] = None,
     tokens: Optional[int] = None,
-    client_ip: Optional[str] = None,
+    client_context: Optional[Dict[str, Any]] = None,
     save_to_file: bool = True,
     sync_repo: bool = False,
     search_query: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Internal implementation of fetch_library_documentation."""
+    """Internal implementation aligned with v2 context API.
+
+    Uses `/v2/context` endpoint which expects `query` and `libraryId`.
+    """
     try:
-        # Clean up library_id
+        # Normalize library id (strip leading slash)
         if library_id.startswith("/"):
             library_id = library_id[1:]
 
-        url = f"{CONTEXT7_API_BASE_URL}/v1/{library_id}"
-        params: Dict[str, Any] = {"type": DEFAULT_TYPE}
+        url = f"{CONTEXT7_API_BASE_URL}/v2/context"
+        params: Dict[str, str] = {"libraryId": library_id, "query": query or ""}
         if tokens:
             params["tokens"] = str(tokens)
-        if topic:
-            params["topic"] = topic
 
-        headers = generate_headers(client_ip, {"X-Context7-Source": "mcp-server"})
+        headers = generate_headers(client_context)
 
-        response = requests.get(
-            url, params=params, headers=headers, proxies=PROXY_CONFIG
-        )
-        response.raise_for_status()
+        response = requests.get(url, params=params, headers=headers, proxies=PROXY_CONFIG)
+        if response.status_code != 200:
+            try:
+                msg = response.json().get("message")
+            except Exception:
+                msg = None
+            if response.status_code == 429:
+                return {"error": "Rate limited. Please try again later."}
+            return {"error": msg or f"Request failed with status {response.status_code}"}
 
         text = response.text
-        if not text or text in ["No content available", "No context data available"]:
-            return {"error": "No content available for this library."}
+        if not text:
+            return {"error": "Documentation not found or not finalized for this library."}
 
         result = {
             "library_id": library_id,
             "content": text,
             "length": len(text),
-            "topic": topic,
+            "query": query,
             "tokens_requested": tokens,
         }
 
@@ -373,7 +459,6 @@ def _fetch_library_documentation_impl(
             output_dir = ".kms/context7/km-base"
             os.makedirs(output_dir, exist_ok=True)
 
-            # Sanitize library_id for filename
             safe_id = library_id.replace("/", "_").replace("-", "_")
             output_path = os.path.join(output_dir, f"{safe_id}.md")
 
@@ -382,7 +467,7 @@ def _fetch_library_documentation_impl(
 
             result["saved_to"] = output_path
 
-            # Handle repository sync
+            # Handle repository sync (try to detect GitHub repo in top of doc)
             if sync_repo:
                 repo_url = extract_github_repo_from_doc(text)
                 if repo_url:
@@ -393,11 +478,8 @@ def _fetch_library_documentation_impl(
                     else:
                         result["repo_clone_failed"] = repo_url
                 else:
-                    result["no_repo_found"] = (
-                        "No GitHub repository URL found in documentation"
-                    )
+                    result["no_repo_found"] = "No GitHub repository URL found in documentation"
 
-            # Update INDEX.md file
             repo_dir_for_index = None
             if sync_repo and "repo_cloned" in result:
                 repo_dir_for_index = result["repo_cloned"]
@@ -412,18 +494,15 @@ def _fetch_library_documentation_impl(
 
         return result
 
-    except requests.exceptions.HTTPError as e:
-        if hasattr(e, "response") and e.response.status_code == 429:
-            return {"error": "Rate limited. Please try again later."}
-        else:
-            return {"error": f"HTTP error: {e}"}
     except Exception as e:
         return {"error": f"Failed to fetch documentation: {str(e)}"}
 
 
 # MCP Tools (these are the decorated versions for MCP server)
 @mcp.tool
-def search_libraries(query: str, client_ip: Optional[str] = None) -> Dict[str, Any]:
+def search_libraries(
+    query: str, library_name: Optional[str] = None, client_ip: Optional[str] = None
+) -> Dict[str, Any]:
     """
     Searches for libraries matching the given query using Context7 API.
 
@@ -462,7 +541,9 @@ def search_libraries(query: str, client_ip: Optional[str] = None) -> Dict[str, A
             for lib in results['results']:
                 print(f"Found: {lib['title']} - {lib['id']}")
     """
-    return _search_libraries_impl(query, client_ip)
+    # Backwards-compatible: if caller passed only client_ip, convert to context
+    client_ctx = {"clientIp": client_ip} if client_ip else None
+    return _search_libraries_impl(query, library_name, client_ctx)
 
 
 @mcp.tool
@@ -550,8 +631,17 @@ def fetch_library_documentation(
             sync_repo=True
         )
     """
+    # Map previous arguments to v2 context API: use `search_query` (or topic)
+    query = search_query or topic or ""
+    client_ctx = {"clientIp": client_ip} if client_ip else None
     return _fetch_library_documentation_impl(
-        library_id, topic, tokens, client_ip, save_to_file, sync_repo, search_query
+        library_id,
+        query=query,
+        tokens=tokens,
+        client_context=client_ctx,
+        save_to_file=save_to_file,
+        sync_repo=sync_repo,
+        search_query=search_query,
     )
 
 
@@ -797,7 +887,8 @@ def main() -> None:
 
         if args.command == "search":
             # Use the internal implementation function for CLI
-            results = _search_libraries_impl(args.query, args.client_ip)
+            client_ctx = {"clientIp": args.client_ip} if args.client_ip else None
+            results = _search_libraries_impl(args.query, None, client_ctx)
             if results.get("error"):
                 print(f"Error: {results['error']}")
             else:
@@ -811,13 +902,13 @@ def main() -> None:
                 sanitized_id = args.library_id.replace("/", "_").strip("_")
                 output_file = f".kms/context7/km-base/{sanitized_id}.md"
 
-            # Use the internal implementation function for CLI
-            result = _fetch_library_documentation_impl(
+            # Use the public wrapper which maps to v2 context API
+            result = fetch_library_documentation(
                 library_id=args.library_id,
                 topic=args.topic,
                 tokens=args.tokens,
                 client_ip=args.client_ip,
-                save_to_file=True,  # Always save to file in CLI mode
+                save_to_file=True,
                 sync_repo=args.sync_repo,
                 search_query=args.search_query,
             )

@@ -22,9 +22,10 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastmcp>=0.1.0",
     "requests>=2.25.0",
     "cryptography>=3.0.0",
+    "httpx[socks]>=0.28.1",
+    "fastmcp>=2.14.3",
 ]
 
 [project.optional-dependencies]
@@ -75,3 +76,9 @@ ignore = ["E501", "B008", "C901"]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
+
+[dependency-groups]
+test = [
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+]
