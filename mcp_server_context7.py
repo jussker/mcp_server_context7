@@ -78,6 +78,47 @@ PROXY_URL = (
 )
 PROXY_CONFIG = {"http": PROXY_URL, "https": PROXY_URL} if PROXY_URL else {}
 
+# Environment API key for Context7 v2 (preferred over deprecated client-ip key)
+CONTEXT7_API_KEY = os.environ.get("CONTEXT7_API_KEY")
+
+
+def parse_error_response(response: requests.Response, api_key: Optional[str] = None) -> str:
+    """Parse error response from Context7 API and return a user-friendly message.
+
+    Mirrors the TypeScript `parseErrorResponse` behavior: prefer server message,
+    otherwise provide status-specific guidance (429/404/401).
+    """
+    try:
+        json_body = response.json()
+        if isinstance(json_body, dict) and json_body.get("message"):
+            return json_body.get("message")
+    except Exception:
+        # Fallthrough to status-based messages
+        pass
+
+    status = getattr(response, "status_code", None)
+    if status == 429:
+        if api_key:
+            return (
+                "Rate limited or quota exceeded. Upgrade your plan at "
+                "https://context7.com/plans for higher limits."
+            )
+        return (
+            "Rate limited or quota exceeded. Create a free API key at "
+            "https://context7.com/dashboard for higher limits."
+        )
+    if status == 404:
+        return (
+            "The library you are trying to access does not exist. Please try with a "
+            "different library ID."
+        )
+    if status == 401:
+        return (
+            "Invalid API key. Please check your API key. API keys should start with "
+            "'ctx7sk' prefix."
+        )
+    return f"Request failed with status {status}. Please try again later."
+
 # Create the MCP server
 mcp = FastMCP("Context7 MCP Server 📚")
 
@@ -129,7 +170,9 @@ def generate_headers(
     if client_ip:
         headers["mcp-client-ip"] = encrypt_client_ip(client_ip)
 
-    api_key = ctx.get("apiKey") or ctx.get("api_key")
+    # Prefer explicit apiKey from context, fall back to environment
+    env_api_key = CONTEXT7_API_KEY or os.environ.get("CONTEXT7_API_KEY")
+    api_key = ctx.get("apiKey") or ctx.get("api_key") or env_api_key
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 
@@ -364,14 +407,11 @@ def _search_libraries_impl(
 
         response = requests.get(url, params=params, headers=headers, proxies=PROXY_CONFIG)
         if response.status_code != 200:
-            # Try to parse server message
-            try:
-                msg = response.json().get("message")
-            except Exception:
-                msg = None
-            if response.status_code == 429:
-                return {"results": [], "error": "Rate limited. Please try again later."}
-            return {"results": [], "error": msg or f"Request failed with status {response.status_code}"}
+            api_key = None
+            if client_context and isinstance(client_context, dict):
+                api_key = client_context.get("apiKey") or client_context.get("api_key")
+            msg = parse_error_response(response, api_key)
+            return {"results": [], "error": msg}
 
         search_response = response.json()
         results = search_response.get("results", [])
@@ -434,13 +474,11 @@ def _fetch_library_documentation_impl(
 
         response = requests.get(url, params=params, headers=headers, proxies=PROXY_CONFIG)
         if response.status_code != 200:
-            try:
-                msg = response.json().get("message")
-            except Exception:
-                msg = None
-            if response.status_code == 429:
-                return {"error": "Rate limited. Please try again later."}
-            return {"error": msg or f"Request failed with status {response.status_code}"}
+            api_key = None
+            if client_context and isinstance(client_context, dict):
+                api_key = client_context.get("apiKey") or client_context.get("api_key")
+            msg = parse_error_response(response, api_key)
+            return {"error": msg}
 
         text = response.text
         if not text:

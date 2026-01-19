@@ -1,0 +1,65 @@
+{
+  "id": "20260119_mcp_sync_from_ts",
+  "title": "Sync MCP implementation from upstash/context7 TypeScript",
+  "status": "not-started",
+  "ref_files": [
+    "mcp_server_context7.py",
+    "tests/test_mcp_server.py"
+  ],
+  "tasks": [
+    {
+      "seq": 1,
+      "title": "Environment preparation",
+      "status": "not-started",
+      "priority": "critical",
+      "depends_on": [],
+      "description": "Set network proxy, ensure `uv` installed, create/activate venv, sync deps with `uv sync --group test`.",
+      "files": []
+    },
+    {
+      "seq": 2,
+      "title": "Clone official TypeScript repo",
+      "status": "not-started",
+      "priority": "high",
+      "depends_on": [1],
+      "description": "Clone https://github.com/upstash/context7 into `upstash_context7` for reference (no install).",
+      "files": []
+    },
+    {
+      "seq": 3,
+      "title": "Review TS `packages/mcp` implementation",
+      "status": "not-started",
+      "priority": "high",
+      "depends_on": [2],
+      "description": "Map authentication, endpoints, headers and behaviors used by v2 API.",
+      "files": []
+    },
+    {
+      "seq": 4,
+      "title": "Align Python `mcp_server_context7.py` with TS behavior",
+      "status": "not-started",
+      "priority": "critical",
+      "depends_on": [3],
+      "description": "Update headers/auth logic, normalize interfaces, keep Python-specific utilities (file save, repo sync).",
+      "files": ["mcp_server_context7.py"]
+    },
+    {
+      "seq": 5,
+      "title": "Add/adjust tests",
+      "status": "not-started",
+      "priority": "high",
+      "depends_on": [4],
+      "description": "Expand `tests/` to cover new auth and v2 behavior; run pytest until green.",
+      "files": ["tests/test_mcp_server.py"]
+    },
+    {
+      "seq": 6,
+      "title": "Commit and push branch",
+      "status": "not-started",
+      "priority": "medium",
+      "depends_on": [5],
+      "description": "Create branch `feat/mcp-sync-from-ts`, commit changes with message `chore(mcp): sync implementation with upstash/context7@<commit>` and open PR.",
+      "files": []
+    }
+  ]
+}
