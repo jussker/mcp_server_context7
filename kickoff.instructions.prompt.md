@@ -3,10 +3,10 @@ context7 MCP typescript 版本同步与迁移python版本指引
 1. 环境准备
 - 检查是否安装 `uv`；若无，运行：`curl -LsSf https://astral.sh/uv/install.sh | sh`
 - 检查并激活 Python 虚拟环境：若无则创建并激活：`uv venv` 后 `source .venv/bin/activate`
-- 同步项目依赖：`uv sync`
+- 同步项目依赖：`uv sync --group test`
 
 2. 获取参考实现
-- 在项目根目录 clone 官方实现：`git clone https://github.com/upstash/context7.git upstash_context7`
+- 在项目根目录 clone 官方实现的源代码(只同步仓库, 不安装)：`git clone https://github.com/upstash/context7.git upstash_context7`
 
 3. 对齐实现
 - 重点阅读并理解 `upstash_context7/packages/mcp` 下的 TypeScript 最新实现（多跳检索以把握所有相关模块）
